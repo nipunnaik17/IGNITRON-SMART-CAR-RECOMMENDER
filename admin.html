@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-2xl mx-auto p-6 
+    bg-white/10 backdrop-blur-xl 
+    rounded-2xl shadow-2xl border border-white/20 
+    space-y-6 mt-10 
+    transition-all duration-500 hover:scale-[1.01] hover:shadow-purple-500/40">
+
+  <h2 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent drop-shadow-md">
+    Admin Panel — Upload Clean Dataset
+  </h2>
+
+  <p class="text-gray-300">⚠️ Upload only cleaned CSV dataset (no missing values)</p>
+
+  <form method="POST" enctype="multipart/form-data" class="space-y-5" onsubmit="showUploadLoader()">
+
+    <!-- Username -->
+    <div class="space-y-1">
+      <label class="block text-sm font-semibold text-gray-200">Uploader Username</label>
+      <input name="upload_user"
+        class="w-full p-3 rounded-xl bg-white/10 border border-white/20 
+               focus:ring-2 focus:ring-purple-400
+               transition-all duration-300"
+        placeholder="e.g., admin" required>
+    </div>
+
+    <!-- CSV Upload -->
+    <div class="space-y-1">
+      <label class="block text-sm font-semibold text-gray-200">Dataset File</label>
+      <input name="dataset" type="file" accept=".csv"
+        class="w-full p-3 rounded-xl bg-white/10 border border-white/20 
+               hover:bg-white/20 transition"
+        onchange="validateFile(this)" required>
+      <div id="file-feedback" class="text-sm mt-1 text-gray-300"></div>
+    </div>
+
+    <!-- Upload Button -->
+    <button type="submit"
+      class="w-full p-3 font-semibold rounded-xl 
+             bg-gradient-to-r from-blue-500 to-purple-500 
+             hover:from-purple-500 hover:to-pink-500
+             shadow-lg hover:shadow-purple-500/40
+             transition-all duration-500 
+             hover:scale-[1.02] active:scale-[0.98]">
+      Upload & Clean + Train KNN
+    </button>
+  </form>
+
+  <!-- Loader -->
+  <div id="upload-loader" class="hidden mt-6 text-center">
+    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto"></div>
+    <p class="mt-3 text-gray-200">Uploading and training...</p>
+
+    <div class="w-full bg-gray-700/50 rounded-full h-2 mt-3">
+      <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style="width: 0%;"></div>
+    </div>
+  </div>
+
+  <!-- Dataset List -->
+  {% if datasets %}
+  <div class="mt-6">
+    <h3 class="font-bold text-xl text-gray-200">Available Datasets</h3>
+    <ul class="space-y-2 mt-2">
+      {% for ds in datasets %}
+        <li class="flex items-center justify-between bg-white/5 backdrop-blur-xl p-3 rounded-xl border border-white/10 hover:border-purple-400/40 transition">
+          <span class="text-gray-200">{{ ds }}</span>
+          <button onclick="confirmDelete('{{ ds }}')" 
+            class="text-red-400 hover:text-red-500 font-semibold hover:underline transition">
+            Delete Model
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden flex items-center justify-center z-50">
+  <div class="bg-white/10 border border-white/20 backdrop-blur-xl p-6 rounded-2xl shadow-xl max-w-sm w-full 
+              animate-[fadeIn_0.4s_ease]">
+    <h3 class="text-xl font-bold text-gray-100 mb-4">Confirm Deletion</h3>
+    <p class="text-gray-300 mb-4">Delete model for <span id="delete-dataset" class="font-semibold"></span>?</p>
+
+    <div class="flex justify-end space-x-3">
+      <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-gray-600/40 hover:bg-gray-600/60 transition text-gray-100">
+        Cancel
+      </button>
+
+      <a id="confirm-delete-link" href="#"
+        class="px-4 py-2 rounded-xl font-semibold 
+               bg-red-500/80 hover:bg-red-600 transition text-white">
+        Delete
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function validateFile(input) {
+    const feedback = document.getElementById('file-feedback');
+    if (!input.files[0]) return;
+
+    const file = input.files[0];
+
+    if (file.type !== "text/csv") {
+      feedback.textContent = "❌ Please upload a valid CSV file.";
+      feedback.className = "text-sm text-red-400";
+    } else if (file.size > 10 * 1024 * 1024) {
+      feedback.textContent = "⚠️ File must be under 10MB.";
+      feedback.className = "text-sm text-red-400";
+    } else {
+      feedback.textContent = "✔ CSV file looks good.";
+      feedback.className = "text-sm text-green-400";
+    }
+  }
+
+  function showUploadLoader() {
+    document.getElementById("upload-loader").classList.remove("hidden");
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 8;
+      document.getElementById("progress-bar").style.width = progress + "%";
+      if (progress >= 100) clearInterval(interval);
+    }, 200);
+  }
+
+  function confirmDelete(dataset) {
+    document.getElementById("delete-dataset").textContent = dataset;
+    document.getElementById("confirm-delete-link").href = "{{ url_for('delete_model', dataset='') }}" + dataset;
+    document.getElementById("delete-modal").classList.remove("hidden");
+  }
+
+  function closeModal() {
+    document.getElementById("delete-modal").classList.add("hidden");
+  }
+</script>
+
+{% endblock %}
